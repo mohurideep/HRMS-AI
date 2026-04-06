@@ -22,6 +22,7 @@ def handle_query(query: str, auth_token: str):
 
     if intent.get("intent") == "get_holidays":
         data = get_holidays(auth_token)
-        return generate_answer(query, data)
+        cleaned_data = clean_holidays(data)
+        return generate_answer(query, cleaned_data)
 
     return "Unsupported request"

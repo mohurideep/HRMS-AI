@@ -1,4 +1,5 @@
 from llama_cpp import Llama
+import json
 
 MODEL_PATH = r"models\gemma\gemma-4-e2b-it-Q8_0.gguf"
 
@@ -10,26 +11,46 @@ llm = Llama(
 
 #Intent Function
 def get_intent(query: str):
-    messages = f"""
-    You are a helpful HRMS intent classifier. 
-    Available intents:
-    - get_holidays
+    messages = [
+        {
+            "role": "system",
+            "content": """You are an HRMS intent classifier.
 
-    Rules:
-    - Return only in JSON format
-    - No Explanations
-    - No Extra text
+Available intents:
+- get_holidays
 
-    User: {query}
+Rules:
+- Return valid JSON only
+- Do not include explanations or markdown
+- Use this exact schema: {"intent": "<intent_name_or_unknown>"}
+- If the user is asking about holidays, leave, festival holidays, company holidays, public holidays, or holiday calendar, return {"intent": "get_holidays"}
+- If the request does not match an available intent, return {"intent": "unknown"}"""
+        },
+        {
+            "role": "user",
+            "content": query.strip()
+        }
+    ]
 
-    output:"""
     output = llm.create_chat_completion(
         messages=messages,
-        max_tokens=get_max_tokens(messages),
+        max_tokens=64,
         temperature=0.0
     )
-    text = output.get("choices", [{}])[0].get("text", "").strip()
-    return text
+    text = output.get("choices", [{}])[0].get("message", {}).get("content", "").strip()
+
+    try:
+        parsed = json.loads(text)
+        if parsed.get("intent") in {"get_holidays", "unknown"}:
+            return json.dumps(parsed)
+    except json.JSONDecodeError:
+        pass
+
+    normalized_query = query.lower()
+    if any(keyword in normalized_query for keyword in ["holiday", "holidays", "festival", "public holiday", "holiday calendar"]):
+        return json.dumps({"intent": "get_holidays"})
+
+    return json.dumps({"intent": "unknown"})
 
 def generate_answer(query: str, data: dict):
     context = "\n".join([
