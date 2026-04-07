@@ -1,14 +1,38 @@
 # app/main.py
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, Depends, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 from app.orchestrator import handle_query
+
+from app.tools.swagger_loader import load_swagger
+from app.tools.swagger_parser import parse_swagger
+from app.tools.registry import register_tools
+from app.tools.tool_builder import build_llm_tools
+from app.core.config import SWAGGER_URL
+
 import logging
 
 logging.basicConfig(level=logging.INFO)
 
-app = FastAPI()
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    print("Loading Swagger documentation...")
+
+    swagger = load_swagger(SWAGGER_URL)
+    parsed_tools = parse_swagger(swagger)
+    llm_tools = build_llm_tools(parsed_tools)
+
+    register_tools(parsed_tools, llm_tools)
+
+    print(f"✅ Loaded {len(parsed_tools)} tools")
+
+    yield
+    print("🛑 Shutdown complete")
+
+
+app = FastAPI(lifespan=lifespan)
 
 # Security scheme (Swagger compatible)
 security = HTTPBearer(auto_error=False)
@@ -49,10 +73,7 @@ def chat(
         logging.error("Invalid auth scheme")
         raise HTTPException(status_code=401, detail="Invalid authentication scheme")
 
-    # # 🔥 Step 4 — Reconstruct full Authorization header
-    # full_auth_header = f"Bearer {token}"
-
-    # 🔥 Step 5 — Call orchestrator
+    # 🔥 Step 4 — Call orchestrator
     try:
         response = handle_query(req.query, token)
         return {"response": response}
