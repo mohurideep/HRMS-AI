@@ -1,3 +1,4 @@
 /.vscode/
 hvenv/
 models/
+__pycache__/

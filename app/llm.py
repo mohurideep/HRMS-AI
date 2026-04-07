@@ -5,7 +5,7 @@ MODEL_PATH = r"models\gemma\gemma-4-e2b-it-Q8_0.gguf"
 
 llm = Llama(
     model_path=MODEL_PATH,
-    n_ctx=2048,
+    n_ctx=4096,
     n_threads=4
 )
 
@@ -16,15 +16,15 @@ def get_intent(query: str):
             "role": "system",
             "content": """You are an HRMS intent classifier.
 
-Available intents:
-- get_holidays
+            Available intents:
+            - get_holidays
 
-Rules:
-- Return valid JSON only
-- Do not include explanations or markdown
-- Use this exact schema: {"intent": "<intent_name_or_unknown>"}
-- If the user is asking about holidays, leave, festival holidays, company holidays, public holidays, or holiday calendar, return {"intent": "get_holidays"}
-- If the request does not match an available intent, return {"intent": "unknown"}"""
+            Rules:
+            - Return valid JSON only
+            - Do not include explanations or markdown
+            - Use this exact schema: {"intent": "<intent_name_or_unknown>"}
+            - If the user is asking about holidays, leave, festival holidays, company holidays, public holidays, or holiday calendar, return {"intent": "get_holidays"}
+            - If the request does not match an available intent, return {"intent": "unknown"}"""
         },
         {
             "role": "user",
