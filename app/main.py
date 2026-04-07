@@ -4,6 +4,8 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Depends, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
+
+from app.llm.llm import load_llm
 from app.orchestrator import handle_query
 
 from app.tools.swagger_loader import load_swagger
@@ -14,6 +16,7 @@ from app.core.config import SWAGGER_URL
 
 import logging
 
+MODEL_PATH = r"models\gemma\gemma-4-e2b-it-Q8_0.gguf"
 logging.basicConfig(level=logging.INFO)
 
 @asynccontextmanager
@@ -27,6 +30,9 @@ async def lifespan(app: FastAPI):
     register_tools(parsed_tools, llm_tools)
 
     print(f"✅ Loaded {len(parsed_tools)} tools")
+
+    # load llm
+    load_llm(MODEL_PATH)
 
     yield
     print("🛑 Shutdown complete")

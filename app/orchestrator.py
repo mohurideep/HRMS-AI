@@ -1,28 +1,51 @@
 # app/orchestrator.py
-from app.llm import get_intent, generate_answer
-from app.hrms_client import get_holidays
-from app.data_transformer import clean_holidays
-import json
+from app.tools.registry import get_tools
+from app.tools.executor import execute_tool
+from app.llm.tool_selector import select_tool
+from app.llm.response_generator import generate_response
+from app.llm.llm import get_llm
 
 def handle_query(query: str, auth_token: str):
 
-    # Rule shortcut (important for reliability)
-    if "holiday" in query.lower():
-        data = get_holidays(auth_token)
-        cleaned_data = clean_holidays(data)
-        return generate_answer(query, cleaned_data)
+    # # Rule shortcut (important for reliability)
+    # if "holiday" in query.lower():
+    #     data = get_holidays(auth_token)
+    #     cleaned_data = clean_holidays(data)
+    #     return generate_answer(query, cleaned_data)
+    
+    
+    # 🔥 STEP 1 — Intent → Tool
+    tool_name = select_tool(get_llm(), query)
+    if not tool_name:
+        return "Sorry, I could not find a relevant API."
 
-    # LLM intent
-    intent_raw = get_intent(query)
+    tools = get_tools()
 
-    try:
-        intent = json.loads(intent_raw)
-    except json.JSONDecodeError:
-        return "Sorry, I did not understand."
+    tool = next((t for t in tools if t["name"] == tool_name), None)
+    if not tool:
+        return "Tool not found."
+    
+    # 🔥 STEP 2 — Execute API
+    raw_data = execute_tool(tool, {}, auth_token)
 
-    if intent.get("intent") == "get_holidays":
-        data = get_holidays(auth_token)
-        cleaned_data = clean_holidays(data)
-        return generate_answer(query, cleaned_data)
+    # 🔥 STEP 3 — Extract usable data
+    cleaned_data = raw_data.get("data", [])
 
-    return "Unsupported request"
+    # 🔥 STEP 4 — LLM Response Generation
+    final_answer = generate_response(get_llm(), query, cleaned_data)
+
+    return final_answer
+    # # LLM intent
+    # intent_raw = get_intent(query)
+
+    # try:
+    #     intent = json.loads(intent_raw)
+    # except json.JSONDecodeError:
+    #     return "Sorry, I did not understand."
+
+    # if intent.get("intent") == "get_holidays":
+    #     data = get_holidays(auth_token)
+    #     cleaned_data = clean_holidays(data)
+    #     return generate_answer(query, cleaned_data)
+
+    # return "Unsupported request"

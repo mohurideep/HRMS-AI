@@ -1,4 +1,4 @@
-from app.llm import llm
+from app.llm.llm import llm
 
 messages = [
     {
