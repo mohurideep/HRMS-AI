@@ -13,6 +13,7 @@ def parse_swagger(swagger: dict):
 
             tool = {
                 "name": generate_tool_name(method, path),
+                "alias": generate_alias(path),
                 "description": details.get("summary", f"{method.upper()} {path}"),
                 "method": method.upper(),
                 "path": path,
@@ -28,6 +29,10 @@ def generate_tool_name(method, path):
     parts = path.strip("/").split("/")
     return f"{method.lower()}_" + "_".join(parts[-2:])
 
+def generate_alias(path):
+     # /api/v1/attendance/getHolidays → holidays
+     parts = path.strip("/").split("/")
+     return parts[-1]
 
 def extract_parameters(details):
     params = []

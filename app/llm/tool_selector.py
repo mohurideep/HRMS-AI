@@ -1,7 +1,7 @@
 from app.tools.registry import get_llm_tools
 from app.llm.llm_service import generate
 
-def select_tool(llm, query: str):
+def select_tool(query: str):
 
     tools = get_llm_tools()
 
@@ -18,7 +18,10 @@ Available tools:
 
 Select the MOST relevant tool based on the user's query.
 
-Return ONLY the tool name.
+IMPORTANT:
+- Return EXACT tool name Only
+- Do NOT simplify or rename
+- Choose closest match
 """
         },
         {

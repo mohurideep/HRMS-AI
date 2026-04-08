@@ -1,11 +1,11 @@
 from app.llm.llm_service import generate
 
-def generate_response(llm, query: str, data: list):
+def generate_response(query: str, data: list):
 
-    context = "\n".join([
-        f"{item['date']}: {item['name']}"
-        for item in data
-    ])
+    # context = "\n".join([
+    #     f"{item['date']}: {item['name']}"
+    #     for item in data
+    # ])
 
     messages = [
         {
@@ -25,7 +25,7 @@ Rules:
 Query: {query}
 
 Data:
-{context}
+{data}
 """
         }
     ]
@@ -33,7 +33,13 @@ Data:
     response = generate(
         messages=messages,
         temperature=0.2,
-        max_tokens=300
+        max_tokens=get_max_tokens(messages)
     )
 
-    return response["choices"][0]["message"]["content"]
+    return response.strip()
+
+
+# Helper function to set dynamic token allocation
+def get_max_tokens(message):
+     approx_input_token = sum(len(part["content"]) for part in message) // 4  # Approximate input tokens
+     return min(512, 2048 - approx_input_token)
