@@ -1,10 +1,12 @@
 # app/tools/executor.py
-
+import logging
+import time
 import requests
 from app.core.config import BASE_URL
 
 def execute_tool(tool, args, auth_token):
 
+    start_time = time.time()
     url = BASE_URL + tool["path"]
 
     headers = {
@@ -23,5 +25,8 @@ def execute_tool(tool, args, auth_token):
 
     if response.status_code != 200:
         raise Exception(f"API failed: {response.text}")
+
+    duration = time.time() - start_time
+    logging.info(f"🌐 API latency ({tool['name']}): {duration:.3f}s")
 
     return response.json()

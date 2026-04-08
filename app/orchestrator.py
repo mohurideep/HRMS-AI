@@ -7,34 +7,36 @@ from app.tools.executor import execute_tool
 from app.llm.tool_selector import select_tool
 from app.llm.response_generator import generate_response
 
+from app.utils.timing import Timer
+
 def handle_query(query: str, auth_token: str):
 
-    # # Rule shortcut (important for reliability)
-    # if "holiday" in query.lower():
-    #     data = get_holidays(auth_token)
-    #     cleaned_data = clean_holidays(data)
-    #     return generate_answer(query, cleaned_data)
-    
-    
+    timer = Timer()
+    timer.checkpoint("Start Query Handling")
+
     # 🔥 STEP 1 — Intent → Tool
     tool_name = select_tool(query)
+    timer.checkpoint("Tool Selection LLM")
     if not tool_name:
         return "Sorry, I could not find a relevant API."
 
     tools = get_tools()
     tool = find_tool(tools, tool_name)
+    timer.checkpoint("Tool Matching")
     if not tool:
         return "Tool not found."
     
     # 🔥 STEP 2 — Execute API
     raw_data = execute_tool(tool, {}, auth_token)
+    timer.checkpoint("Tool Execution API call")
 
     # 🔥 STEP 3 — Extract usable data
     cleaned_data = raw_data.get("data", [])
+    timer.checkpoint("Data Cleaning")
 
     # 🔥 STEP 4 — LLM Response Generation
     final_answer = generate_response(query, cleaned_data)
-
+    timer.checkpoint("Response Generation LLM")
     return final_answer
 
 
