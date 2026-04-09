@@ -32,7 +32,8 @@ IMPORTANT:
 
     response = generate(
         messages=messages,
-        temperature=0
+        temperature=0,
+        profile_name="tool_call"
     )
 
     return response.strip()

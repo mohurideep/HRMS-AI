@@ -1,114 +1,44 @@
 from llama_cpp import Llama
 
-llm_instance = None  # global singleton
+DEFAULT_CTX = 4096
+
+llm_instance = None
+llm_model_path = None
+llm_ctx_size = 0
 
 
-def load_llm(model_path: str):
-    global llm_instance
+def _build_llm(model_path: str, n_ctx: int):
+    print(f"Loading LLM with context window {n_ctx}...")
+    instance = Llama(
+        model_path=model_path,
+        n_ctx=n_ctx,
+        n_threads=6,
+        n_batch=128,
+        verbose=False
+    )
+    print("LLM Loaded")
+    return instance
 
-    if llm_instance is None:
-        print("🚀 Loading LLM...")
 
-        llm_instance = Llama(
-            model_path=model_path,
-            n_ctx=4096,
-            n_threads=4,
-            verbose=False
-        )
+def load_llm(model_path: str, n_ctx: int = DEFAULT_CTX):
+    global llm_instance, llm_model_path, llm_ctx_size
 
-        print("✅ LLM Loaded")
+    llm_model_path = model_path
+
+    if llm_instance is None or n_ctx > llm_ctx_size:
+        llm_instance = _build_llm(model_path, n_ctx)
+        llm_ctx_size = n_ctx
 
     return llm_instance
 
 
-def get_llm():
-    if llm_instance is None:
-        raise Exception("LLM not loaded")
+def get_llm(required_ctx: int | None = None):
+    if llm_model_path is None:
+        raise Exception("LLM model path not configured")
+
+    target_ctx = max(DEFAULT_CTX, required_ctx or DEFAULT_CTX)
+
+    if llm_instance is None or target_ctx > llm_ctx_size:
+        return load_llm(llm_model_path, target_ctx)
+
     return llm_instance
-
-# #Intent Function
-# def get_intent(query: str):
-#     messages = [
-#         {
-#             "role": "system",
-#             "content": """You are an HRMS intent classifier.
-
-#             Available intents:
-#             - get_holidays
-
-#             Rules:
-#             - Return valid JSON only
-#             - Do not include explanations or markdown
-#             - Use this exact schema: {"intent": "<intent_name_or_unknown>"}
-#             - If the user is asking about holidays, leave, festival holidays, company holidays, public holidays, or holiday calendar, return {"intent": "get_holidays"}
-#             - If the request does not match an available intent, return {"intent": "unknown"}"""
-#         },
-#         {
-#             "role": "user",
-#             "content": query.strip()
-#         }
-#     ]
-
-#     output = llm.create_chat_completion(
-#         messages=messages,
-#         max_tokens=64,
-#         temperature=0.0
-#     )
-#     text = output.get("choices", [{}])[0].get("message", {}).get("content", "").strip()
-
-#     try:
-#         parsed = json.loads(text)
-#         if parsed.get("intent") in {"get_holidays", "unknown"}:
-#             return json.dumps(parsed)
-#     except json.JSONDecodeError:
-#         pass
-
-#     normalized_query = query.lower()
-#     if any(keyword in normalized_query for keyword in ["holiday", "holidays", "festival", "public holiday", "holiday calendar"]):
-#         return json.dumps({"intent": "get_holidays"})
-
-#     return json.dumps({"intent": "unknown"})
-
-# def generate_answer(query: str, data: dict):
-#     context = "\n".join([
-#         f"{item['date']}: {item['name']}"
-#         for item in data
-#     ])
-
-#     messages = [
-#         {
-#             "role": "system",
-#             "content": """You are an HR assistant.
-
-#             Rules:
-#             - Answer using provided data only
-#             - Format response in a clear, user-friendly way
-#             - Group by year if multiple years exist
-#             - Use bullet points
-#             - Do NOT return JSON
-#             - Do NOT include extra explanations
-#             """
-#         },
-#         {
-#             "role": "user",
-#             "content": f"""
-#             Query: {query}
-#             Holidays data:
-#             {context}
-#             Generate a clean, readable response.
-#             """
-#         }
-#     ]
-
-#     output = llm.create_chat_completion(
-#         messages=messages,
-#         max_tokens=get_max_tokens(messages),
-#         temperature=0.0
-#     )
-#     text = output.get("choices", [{}])[0].get("message", {}).get("content", "").strip()
-#     return text
-
-# # Helper function to set dynamic token allocation
-# def get_max_tokens(message):
-#     approx_input_token = sum(len(part["content"]) for part in message) // 4  # Approximate input tokens
-#     return min(512, 2048 - approx_input_token)
