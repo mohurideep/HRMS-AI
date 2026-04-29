@@ -35,8 +35,10 @@ def load_llm(model_path: str, n_ctx: int = DEFAULT_CTX):
 def get_llm(required_ctx: int | None = None):
     if llm_model_path is None:
         raise Exception("LLM model path not configured")
-
-    target_ctx = max(DEFAULT_CTX, required_ctx or DEFAULT_CTX)
+    MIN_CTX = 1024
+    MAX_CTX = 4096
+    target_ctx = required_ctx or DEFAULT_CTX
+    target_ctx = max(MIN_CTX, min(target_ctx, MAX_CTX))
 
     if llm_instance is None or target_ctx > llm_ctx_size:
         return load_llm(llm_model_path, target_ctx)

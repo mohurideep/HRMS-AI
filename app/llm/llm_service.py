@@ -33,7 +33,7 @@ def _estimate_tokens(messages) -> int:
 
 
 def _round_ctx_size(required_ctx: int, profile: dict) -> int:
-    for candidate in (2048, 4096, 8192, 16384):
+    for candidate in (1024, 2048, 4096, 8192, 16384):
         if candidate >= required_ctx:
             return min(candidate, profile["max_ctx"])
     return profile["max_ctx"]
